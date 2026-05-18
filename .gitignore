@@ -1,38 +1,75 @@
-# Flutter/Dart
-build/
+# Miscellany
+*.class
+*.claude
+.dart_tool
+*backend/venv
+
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configurations and scripts you may want to
+# share with others. However, more personal settings are located in
+# .vscode/settings.json, which should not be under version control.
+# If you wish to share these, uncomment the lines below:
+# .vscode/settings.json
+# .vscode/tasks.json
+# .vscode/launch.json
+# .vscode/extensions.json
+# .vscode/batch-run.json
+
+# Flutter/Dart related
+**/doc/api/
+**/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
 .packages
 .pub-cache/
 .pub/
-.flutter-plugins
-.flutter-plugins-dependencies
+__pycache__/
+build/
 
-# Android
-.gradle/
-local.properties
-*.out.ptrk
-*.apk
-*.ap_
-*.aab
+# Symbolication related
+app.*.symbols
 
-# iOS
-.generated/
-DerivedData/
-Pods/
+# Obfuscation related
+app.*.map.json
 
-# Environment variables
-.env*
-!.env.example
+# Android Studio will create this file for you and it should not be checked into source control
+android/local.properties
 
-# IDE
-.idea/
-.vscode/
-*.iml
-*.iws
+# Flutter web build artifacts
+build/web/
 
-# Secrets
-**/secrets.dart
-**/api_keys.dart
+# Scripts for deploying to the App Store
+ios/fastlane/report.xml
+ios/fastlane/preview.png
+ios/fastlane/screenshots/
+ios/fastlane/test_output/
 
-# Mac
-.DS_Store
+# Bundletool
+*.apks
+
+# Crashlytics generated file
+ios/Flutter/AppFrameworkInfo.plist
+
+# Secret keys (IMPORTANT: never commit your keys)
+*.jks
+*.keystore
+*.p12
+*.key
+*.pem
+.env*.env
