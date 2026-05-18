@@ -1,0 +1,38 @@
+# Flutter/Dart
+build/
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Android
+.gradle/
+local.properties
+*.out.ptrk
+*.apk
+*.ap_
+*.aab
+
+# iOS
+.generated/
+DerivedData/
+Pods/
+
+# Environment variables
+.env*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+
+# Secrets
+**/secrets.dart
+**/api_keys.dart
+
+# Mac
+.DS_Store
