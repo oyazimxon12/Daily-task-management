@@ -25,7 +25,7 @@ class WeatherService {
   static String get _apiKey => dotenv.env['WEATHER_API_KEY'] ?? '';
   static const _baseUrl = 'https://api.openweathermap.org/data/2.5';
 
-  Future<WeatherData> getWeather() async {
+  Future<WeatherData> getWeather({String locale = 'en'}) async {
     double lat = 41.2995, lon = 69.2401; // Toshkent default
 
     try {
@@ -34,8 +34,11 @@ class WeatherService {
       lon = pos.longitude;
     } catch (_) {}
 
+    // OpenWeatherMap supports 'ru' and 'en'; 'uz' falls back to English
+    final lang = locale == 'ru' ? 'ru' : 'en';
+
     final resp = await http.get(
-      Uri.parse('$_baseUrl/weather?lat=$lat&lon=$lon&appid=$_apiKey&units=metric&lang=uz'),
+      Uri.parse('$_baseUrl/weather?lat=$lat&lon=$lon&appid=$_apiKey&units=metric&lang=$lang'),
     ).timeout(const Duration(seconds: 15));
 
     if (resp.statusCode != 200) throw Exception('Weather error ${resp.statusCode}');

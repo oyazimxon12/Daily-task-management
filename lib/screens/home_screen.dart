@@ -33,7 +33,8 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TaskProvider>().loadTasks().catchError((_) {});
-      context.read<WeatherProvider>().load();
+      final locale = context.read<LocaleProvider>().locale;
+      context.read<WeatherProvider>().load(locale: locale);
     });
   }
 
@@ -153,7 +154,11 @@ class _DashboardScreen extends StatelessWidget {
         return RefreshIndicator(
           onRefresh: () async {
             await context.read<TaskProvider>().loadTasks();
-            await context.read<WeatherProvider>().load();
+            if (context.mounted) {
+              await context.read<WeatherProvider>().load(
+                locale: context.read<LocaleProvider>().locale,
+              );
+            }
           },
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
@@ -279,7 +284,19 @@ class _WeatherCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Consumer<WeatherProvider>(
       builder: (ctx, wp, _) {
-        if (wp.loading) return const SizedBox.shrink();
+        if (wp.loading) {
+          return Container(
+            height: 80,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [theme.colorScheme.primary.withValues(alpha: 0.8), theme.colorScheme.primary],
+                begin: Alignment.topLeft, end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
+          );
+        }
         final w = wp.weather;
         return Container(
           padding: const EdgeInsets.all(20),
@@ -294,18 +311,25 @@ class _WeatherCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Text(w?.icon ?? '☀️', style: const TextStyle(fontSize: 40)),
+              Text(w?.icon ?? '☀️', style: const TextStyle(fontSize: 44)),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(w?.city ?? 'Tashkent', style: GoogleFonts.syne(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                    Text('${w?.temp.toInt() ?? 25}°C • ${w?.condition ?? 'Sunny'}', style: GoogleFonts.dmSans(color: Colors.white.withOpacity(0.9))),
+                    Text('${w?.temp.toInt() ?? 25}°C  •  ${w?.condition ?? 'Sunny'}', style: GoogleFonts.dmSans(color: Colors.white.withValues(alpha: 0.92))),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text('💧 ${w?.humidity ?? '--'}%', style: GoogleFonts.dmSans(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
+                        const SizedBox(width: 12),
+                        Text('💨 ${w?.windSpeed.toStringAsFixed(1) ?? '--'} m/s', style: GoogleFonts.dmSans(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
+                      ],
+                    ),
                   ],
                 ),
               ),
-              const Icon(Icons.cloud_queue_rounded, color: Colors.white, size: 30),
             ],
           ),
         );
