@@ -24,6 +24,7 @@ class WeatherData {
 class WeatherService {
   static String get _apiKey => dotenv.env['WEATHER_API_KEY'] ?? '';
   static const _baseUrl = 'https://api.openweathermap.org/data/2.5';
+  static const _geoUrl = 'http://api.openweathermap.org/geo/1.0';
 
   Future<WeatherData> getWeather({String locale = 'en'}) async {
     double lat = 41.2995, lon = 69.2401; // Toshkent default
@@ -37,15 +38,40 @@ class WeatherService {
     // OpenWeatherMap supports 'ru' and 'en'; 'uz' falls back to English
     final lang = locale == 'ru' ? 'ru' : 'en';
 
-    final resp = await http.get(
-      Uri.parse('$_baseUrl/weather?lat=$lat&lon=$lon&appid=$_apiKey&units=metric&lang=$lang'),
-    ).timeout(const Duration(seconds: 15));
+    // Fetch weather data and proper city name in parallel
+    final results = await Future.wait([
+      http.get(
+        Uri.parse('$_baseUrl/weather?lat=$lat&lon=$lon&appid=$_apiKey&units=metric&lang=$lang'),
+      ).timeout(const Duration(seconds: 15)),
+      http.get(
+        Uri.parse('$_geoUrl/reverse?lat=$lat&lon=$lon&limit=1&appid=$_apiKey'),
+      ).timeout(const Duration(seconds: 15)),
+    ]);
 
-    if (resp.statusCode != 200) throw Exception('Weather error ${resp.statusCode}');
+    if (results[0].statusCode != 200) throw Exception('Weather error ${results[0].statusCode}');
 
-    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    final data = jsonDecode(results[0].body) as Map<String, dynamic>;
+
+    // Get proper city name from Geocoding API (not the neighborhood from weather API)
+    String cityName = data['name'] as String;
+    if (results[1].statusCode == 200) {
+      final geoList = jsonDecode(results[1].body) as List;
+      if (geoList.isNotEmpty) {
+        final geo = geoList[0] as Map<String, dynamic>;
+        // Prefer localized name (uz/ru), fallback to English name
+        final localNames = geo['local_names'] as Map<String, dynamic>?;
+        if (locale == 'ru' && localNames?['ru'] != null) {
+          cityName = localNames!['ru'] as String;
+        } else if (localNames?['en'] != null) {
+          cityName = localNames!['en'] as String;
+        } else {
+          cityName = geo['name'] as String? ?? cityName;
+        }
+      }
+    }
+
     return WeatherData(
-      city: data['name'] as String,
+      city: cityName,
       temp: (data['main']['temp'] as num).toDouble(),
       condition: data['weather'][0]['description'] as String,
       icon: _iconFromCode(data['weather'][0]['id'] as int),
