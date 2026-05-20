@@ -38,7 +38,7 @@ class WeatherService {
       Uri.parse('$_baseUrl/weather?lat=$lat&lon=$lon&appid=$_apiKey&units=metric&lang=uz'),
     ).timeout(const Duration(seconds: 15));
 
-    if (resp.statusCode != 200) throw Exception('Weather error \${resp.statusCode}');
+    if (resp.statusCode != 200) throw Exception('Weather error ${resp.statusCode}');
 
     final data = jsonDecode(resp.body) as Map<String, dynamic>;
     return WeatherData(

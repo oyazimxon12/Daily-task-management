@@ -1,4 +1,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Internet -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Location (weather + qibla) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Microphone (speech to text) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- Camera -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Storage (Android 12 and below) -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
+    <!-- Media images (Android 13+) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+
     <application
         android:label="smart_daily_planner"
         android:name="${applicationName}"

@@ -88,7 +88,7 @@ class AiService {
       final resp = await http.post(
         Uri.parse(_groqUrl),
         headers: {
-          'Authorization': 'Bearer \$_groqKey',
+          'Authorization': 'Bearer $_groqKey',
           'Content-Type': 'application/json',
         },
         body: jsonEncode({'model': _model, 'messages': msgs, 'temperature': 0.7, 'max_tokens': 512}),
@@ -109,7 +109,7 @@ class AiService {
         return (reply: '⏳ AI hozirda band. Bir necha soniya kuting va qaytadan yuboring.', remaining: maxQuestionsPerDay - used);
       }
 
-      return (reply: '❌ Xatolik: \${resp.statusCode}', remaining: maxQuestionsPerDay - used);
+      return (reply: '❌ Xatolik: ${resp.statusCode}', remaining: maxQuestionsPerDay - used);
     } catch (e) {
       return (reply: '❌ Ulanishda xatolik. Internet aloqasini tekshiring.', remaining: maxQuestionsPerDay - used);
     }
@@ -125,7 +125,7 @@ class AiService {
             '• 💪 Sogʿliq va sport\n'
             '• 📚 Oʼqish strategiyalari\n'
             '• 🕌 Namoz va Qibla\n\n'
-            '📊 Bugun qolgan savollar: \$remaining / \$maxQuestionsPerDay\n\n'
+            '📊 Bugun qolgan savollar: $remaining / $maxQuestionsPerDay\n\n'
             'Nima haqida gaplashamiz?',
         isUser: false,
       ),

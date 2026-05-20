@@ -1,7 +1,7 @@
-import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -109,29 +109,13 @@ class _HomeScreenState extends State<HomeScreen> {
         duration: const Duration(milliseconds: 400),
         child: screens[_selectedIndex],
       ),
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 5)),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: NavigationBar(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (i) => setState(() => _selectedIndex = i),
-            elevation: 0,
-            destinations: [
-              NavigationDestination(icon: const Icon(Icons.grid_view_rounded), label: s.navHome),
-              NavigationDestination(icon: const Icon(Icons.task_alt_rounded), label: s.navTasks),
-              NavigationDestination(icon: const Icon(Icons.calendar_today_rounded), label: s.navCalendar),
-              NavigationDestination(icon: const Icon(Icons.auto_awesome_rounded), label: s.navAi),
-              NavigationDestination(icon: const Icon(Icons.settings_rounded), label: s.navProfile),
-            ],
-          ),
-        ),
+      bottomNavigationBar: _AnimatedNavBar(
+        selectedIndex: _selectedIndex,
+        labels: [s.navHome, s.navTasks, s.navCalendar, s.navAi, s.navProfile],
+        onTap: (i) {
+          HapticFeedback.selectionClick();
+          setState(() => _selectedIndex = i);
+        },
       ),
       floatingActionButton: (_selectedIndex < 3)
           ? FloatingActionButton.extended(
@@ -292,7 +276,6 @@ class _WeatherCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = AppStrings.of(context);
     final theme = Theme.of(context);
     return Consumer<WeatherProvider>(
       builder: (ctx, wp, _) {
@@ -456,7 +439,46 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
             _buildPicker(Icons.calendar_today_rounded, '${_selectedDate.day}/${_selectedDate.month}', _pickDate),
             const SizedBox(height: 12),
             _buildPicker(Icons.access_time_rounded, _selectedTime?.format(context) ?? s.selectTime, _pickTime),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _selectedCategory,
+              decoration: InputDecoration(
+                hintText: s.category,
+                prefixIcon: const Icon(Icons.label_outline_rounded),
+              ),
+              items: s.categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+              onChanged: (v) => setState(() => _selectedCategory = v),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: _buildPicker(Icons.photo_library_rounded, s.choosePhoto, () => _pickImage(ImageSource.gallery))),
+                const SizedBox(width: 8),
+                Expanded(child: _buildPicker(Icons.camera_alt_rounded, s.takePhoto, () => _pickImage(ImageSource.camera))),
+              ],
+            ),
+            if (_proofImage != null) ...[
+              const SizedBox(height: 12),
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(File(_proofImage!.path), height: 100, width: double.infinity, fit: BoxFit.cover),
+                  ),
+                  Positioned(
+                    top: 4, right: 4,
+                    child: GestureDetector(
+                      onTap: () => setState(() => _proofImage = null),
+                      child: Container(
+                        decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                        child: const Icon(Icons.close, color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 20),
             Row(
               children: [
                 Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: Text(s.cancel))),
@@ -480,6 +502,12 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
         child: Row(children: [Icon(icon, size: 20, color: Colors.grey), const SizedBox(width: 12), Text(text, style: GoogleFonts.dmSans())]),
       ),
     );
+  }
+
+  void _pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final xfile = await picker.pickImage(source: source, imageQuality: 80);
+    if (xfile != null && mounted) setState(() => _proofImage = xfile);
   }
 
   void _toggleListening() async {
@@ -513,5 +541,164 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
       time: _selectedTime != null ? TaskTime(hour: _selectedTime!.hour, minute: _selectedTime!.minute) : null,
     );
     if (mounted) Navigator.pop(context);
+  }
+}
+
+// ─── Animated Bottom Navigation Bar ───────────────────────────────────────────
+
+class _AnimatedNavBar extends StatelessWidget {
+  final int selectedIndex;
+  final List<String> labels;
+  final ValueChanged<int> onTap;
+
+  const _AnimatedNavBar({
+    required this.selectedIndex,
+    required this.labels,
+    required this.onTap,
+  });
+
+  static const _icons = [
+    Icons.grid_view_rounded,
+    Icons.task_alt_rounded,
+    Icons.calendar_today_rounded,
+    Icons.auto_awesome_rounded,
+    Icons.settings_rounded,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        color: isDark ? cs.surfaceContainerHigh : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.10),
+            blurRadius: 28,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(
+              _icons.length,
+              (i) => _NavItem(
+                icon: _icons[i],
+                label: labels[i],
+                isSelected: i == selectedIndex,
+                primaryColor: cs.primary,
+                onTap: () => onTap(i),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final Color primaryColor;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.primaryColor,
+    required this.onTap,
+  });
+
+  @override
+  State<_NavItem> createState() => _NavItemState();
+}
+
+class _NavItemState extends State<_NavItem> with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 130));
+    _scale = Tween<double>(begin: 1.0, end: 0.82).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails _) => _ctrl.forward();
+  void _onTapUp(TapUpDetails _) { _ctrl.reverse(); widget.onTap(); }
+  void _onTapCancel() => _ctrl.reverse();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      behavior: HitTestBehavior.opaque,
+      child: ScaleTransition(
+        scale: _scale,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: widget.isSelected
+                ? widget.primaryColor.withValues(alpha: 0.13)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, anim) =>
+                    ScaleTransition(scale: anim, child: child),
+                child: Icon(
+                  widget.icon,
+                  key: ValueKey(widget.isSelected),
+                  size: 24,
+                  color: widget.isSelected
+                      ? widget.primaryColor
+                      : cs.onSurface.withValues(alpha: 0.45),
+                ),
+              ),
+              const SizedBox(height: 3),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: GoogleFonts.dmSans(
+                  fontSize: 10,
+                  fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w400,
+                  color: widget.isSelected
+                      ? widget.primaryColor
+                      : cs.onSurface.withValues(alpha: 0.45),
+                ),
+                child: Text(widget.label),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
