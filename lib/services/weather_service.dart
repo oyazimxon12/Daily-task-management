@@ -89,8 +89,11 @@ class WeatherService {
     }
     if (perm == LocationPermission.deniedForever) throw Exception('denied forever');
     return Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
-    ).timeout(const Duration(seconds: 8));
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 8),
+      ),
+    );
   }
 
   String _iconFromCode(int code) {

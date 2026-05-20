@@ -10,8 +10,10 @@ class WeatherProvider extends ChangeNotifier {
   bool get loading => _loading;
   String? get error => _error;
 
-  Future<void> load({String locale = 'en'}) async {
+  Future<void> load({String locale = 'en', bool forceRefresh = false}) async {
     if (_loading) return;
+    // Allow re-fetch if forceRefresh is true (clears cached data)
+    if (_weather != null && !forceRefresh) return;
     _loading = true;
     _error = null;
     notifyListeners();

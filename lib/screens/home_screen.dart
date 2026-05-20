@@ -25,17 +25,32 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TaskProvider>().loadTasks().catchError((_) {});
       final locale = context.read<LocaleProvider>().locale;
       context.read<WeatherProvider>().load(locale: locale);
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      final locale = context.read<LocaleProvider>().locale;
+      context.read<WeatherProvider>().load(locale: locale, forceRefresh: true);
+    }
   }
 
   void _showLanguageMenu() {
@@ -157,6 +172,7 @@ class _DashboardScreen extends StatelessWidget {
             if (context.mounted) {
               await context.read<WeatherProvider>().load(
                 locale: context.read<LocaleProvider>().locale,
+                forceRefresh: true,
               );
             }
           },
