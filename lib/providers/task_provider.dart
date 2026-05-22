@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../models/task.dart';
+import '../services/notification_service.dart';
 
 class TaskProvider extends ChangeNotifier {
   static const _storageKey = 'tasks_v2';
@@ -44,10 +45,21 @@ class TaskProvider extends ChangeNotifier {
     _tasks.add(task);
     await _save();
     notifyListeners();
+
+    if (time != null) {
+      final taskDateTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+      await NotificationService.scheduleTaskReminder(
+        taskId: task.id,
+        taskTitle: title,
+        taskDateTime: taskDateTime,
+      );
+    }
+
     return task.id;
   }
 
   Future<void> deleteTask(String taskId) async {
+    await NotificationService.cancelTaskReminder(taskId);
     _tasks.removeWhere((t) => t.id == taskId);
     await _save();
     notifyListeners();

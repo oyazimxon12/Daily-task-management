@@ -11,6 +11,9 @@ import 'providers/theme_provider.dart';
 import 'providers/locale_provider.dart';
 import 'providers/weather_provider.dart';
 import 'l10n/app_strings.dart';
+import 'services/notification_service.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 // ── Design System Colors ──────────────────────────────────────────────────────
 const _kPrimary   = Color(0xFF4F6EF7); // Indigo Blue
@@ -39,6 +42,7 @@ const _kLightTextMut = Color(0xFF9EA3C0);
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
+  await NotificationService.init();
   runApp(
     MultiProvider(
       providers: [
@@ -65,6 +69,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Smart Daily Planner',
         debugShowCheckedModeBanner: false,
+        navigatorKey: navigatorKey,
         themeMode: themeProvider.themeMode,
         theme:     _buildLightTheme(),
         darkTheme: _buildDarkTheme(),

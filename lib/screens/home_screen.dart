@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,6 +13,7 @@ import '../providers/locale_provider.dart';
 import '../providers/weather_provider.dart';
 import '../l10n/app_strings.dart';
 import '../models/task.dart' hide TimeOfDay;
+import '../services/notification_service.dart';
 import '../widgets/task_detail_sheet.dart';
 import '../widgets/completion_celebration.dart';
 import 'calendar_screen.dart';
@@ -32,10 +35,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TaskProvider>().loadTasks().catchError((_) {});
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await context.read<TaskProvider>().loadTasks().catchError((_) {});
+      if (!mounted) return;
       final locale = context.read<LocaleProvider>().locale;
       context.read<WeatherProvider>().load(locale: locale);
+      _handlePendingNotification();
     });
   }
 
@@ -50,6 +55,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed && mounted) {
       final locale = context.read<LocaleProvider>().locale;
       context.read<WeatherProvider>().load(locale: locale, forceRefresh: true);
+      _handlePendingNotification();
+    }
+  }
+
+  void _handlePendingNotification() {
+    final taskId = NotificationService.consumePendingTaskId();
+    if (taskId == null || !mounted) return;
+    final tasks = context.read<TaskProvider>().tasks;
+    final task = tasks.where((t) => t.id == taskId).firstOrNull;
+    if (task != null) {
+      setState(() => _selectedIndex = 0);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) showTaskDetail(context, task);
+      });
     }
   }
 
@@ -574,12 +593,18 @@ class _AddTaskDialogState extends State<_AddTaskDialog> {
   void _submit() async {
     if (_titleController.text.isEmpty) return;
     final tp = context.read<TaskProvider>();
-    await tp.addTask(
+    final taskId = await tp.addTask(
       title: _titleController.text,
       description: _descController.text,
       date: _selectedDate,
       time: _selectedTime != null ? TaskTime(hour: _selectedTime!.hour, minute: _selectedTime!.minute) : null,
     );
+    if (_proofImage != null) {
+      final bytes = await File(_proofImage!.path).readAsBytes();
+      final b64 = base64Encode(bytes);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('photo_$taskId', b64);
+    }
     if (mounted) Navigator.pop(context);
   }
 }
